@@ -134,3 +134,58 @@ func TestCliOverEnv(t *testing.T) {
 	assert.NoError(t, os.Unsetenv("Y"))
 	assert.NoError(t, os.Unsetenv("Z"))
 }
+
+func TestInvalidEnv(t *testing.T) {
+	type asdf_int struct {
+		X int `env:"X"`
+	}
+
+	type asdf_bool struct {
+		Y bool `env:"Y"`
+	}
+
+	var ci asdf_int
+	var cb asdf_bool
+
+	assert.NoError(t, os.Setenv("X", "asdf"))
+	assert.NoError(t, os.Setenv("Y", "12"))
+
+	assert.Error(t, Init(&ci))
+	assert.Error(t, Init(&cb))
+
+	assert.NoError(t, os.Unsetenv("X"))
+	assert.NoError(t, os.Unsetenv("Y"))
+}
+
+func TestInvalidDefault(t *testing.T) {
+	type asdf_int struct {
+		X int `default:"qwer"`
+	}
+
+	type asdf_bool struct {
+		X bool `default:"12"`
+	}
+
+	var ci asdf_int
+	var cb asdf_bool
+
+	assert.Error(t, Init(&ci))
+	assert.Error(t, Init(&cb))
+}
+
+//
+// TODO:
+//
+
+//func TestInvalidCli(t *testing.T) {
+//	type asdf struct {
+//		X int `cli:"invalid_x"`
+//	}
+//
+//	var c asdf
+//
+//	os.Args = append(os.Args, "--invalid_x=foo")
+//
+//	assert.Error(t, Init(&c))
+//}
+//

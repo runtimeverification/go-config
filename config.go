@@ -93,7 +93,10 @@ func Init(c interface{}) error {
 		// If no "cli" tag is found, set to the current `defaultValueString`
 		// and move on.
 		if !ok {
-			set(vfield, defaultValueString)
+			err := set(vfield, defaultValueString)
+			if err != nil {
+				return err
+			}
 			continue
 		}
 
