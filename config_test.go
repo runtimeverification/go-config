@@ -3,15 +3,9 @@ package config
 import (
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
-
-func testInit(c interface{}, t *testing.T) {
-	err := Init(c)
-
-	if err != nil {
-		t.Fatalf("Init() failed -- %v", err)
-	}
-}
 
 func TestDefaultValueInference(t *testing.T) {
 	type asdf struct {
@@ -20,39 +14,37 @@ func TestDefaultValueInference(t *testing.T) {
 		Z bool
 	}
 
-	var c asdf
+	c := asdf{X: "asdfasdf", Y: 54, Z: true}
 
-	testInit(&c, t)
+	assert.NoError(t, Init(&c))
 
-	if c.X != "" {
-		t.Fatalf("Could not infer default value of empty string")
-	}
-
-	if c.Y != 0 {
-		t.Fatalf("Could not infer default value of 0 for int field")
-	}
-
-	if c.Z != false {
-		t.Fatalf("Could not infer default value of FALSE for bool field")
-	}
+	assert.EqualValues(t, "", c.X, "Could not infer string default value.")
+	assert.EqualValues(t, 0, c.Y, "Could not infer int default value.")
+	assert.EqualValues(t, false, c.Z, "Could not infer bool default value.")
 }
 
 func TestEnvOnly(t *testing.T) {
 	type asdf struct {
 		X string `env:"X"`
+		Y int    `env:"Y"`
+		Z bool   `env:"Z"`
 	}
 
-	os.Setenv("X", "FOO")
+	assert.NoError(t, os.Setenv("X", "FOO"))
+	assert.NoError(t, os.Setenv("Y", "11"))
+	assert.NoError(t, os.Setenv("Z", "True"))
 
 	var c asdf
 
-	testInit(&c, t)
+	assert.NoError(t, Init(&c))
 
-	if c.X != "FOO" {
-		t.Fatalf("Expected \"%s\", found \"%s\"", "FOO", c.X)
-	}
+	assert.EqualValues(t, "FOO", c.X)
+	assert.EqualValues(t, 11, c.Y)
+	assert.EqualValues(t, true, c.Z)
 
-	os.Unsetenv("X")
+	assert.NoError(t, os.Unsetenv("X"))
+	assert.NoError(t, os.Unsetenv("Y"))
+	assert.NoError(t, os.Unsetenv("Z"))
 }
 
 func TestCliOnly(t *testing.T) {
@@ -68,19 +60,11 @@ func TestCliOnly(t *testing.T) {
 	os.Args = append(os.Args, "--yyy", "yval")
 	os.Args = append(os.Args, "--zzz=zval")
 
-	testInit(&c, t)
+	assert.NoError(t, Init(&c))
 
-	if c.X != "BAR" {
-		t.Fatalf("Expected \"%s\", found \"%s\"", "BAR", c.X)
-	}
-
-	if c.Y != "yval" {
-		t.Fatalf("Expected \"%s\", found \"%s\"", "yval", c.X)
-	}
-
-	if c.Z != "zval" {
-		t.Fatalf("Expected \"%s\", found \"%s\"", "zval", c.X)
-	}
+	assert.EqualValues(t, "BAR", c.X)
+	assert.EqualValues(t, "yval", c.Y)
+	assert.EqualValues(t, "zval", c.Z)
 }
 
 func TestProvidedDefaultOnly(t *testing.T) {
@@ -92,17 +76,61 @@ func TestProvidedDefaultOnly(t *testing.T) {
 
 	var c asdf
 
-	testInit(&c, t)
+	assert.NoError(t, Init(&c))
 
-	if c.X != "XXX" {
-		t.Fatalf("Failed provided string default \"XXX\", found %s", c.X)
+	assert.EqualValues(t, "XXX", c.X)
+	assert.EqualValues(t, 10, c.Y)
+	assert.EqualValues(t, true, c.Z)
+}
+
+func TestEnvOverDefault(t *testing.T) {
+	type asdf struct {
+		X string `default:"XXX" env:"X"`
+		Y int    `default:"10" env:"Y"`
+		Z bool   `default:"true" env:"Z"`
 	}
 
-	if c.Y != 10 {
-		t.Fatalf("Failed provided int default 10, found %d", c.Y)
+	var c asdf
+
+	assert.NoError(t, os.Setenv("X", "EnvX"))
+	assert.NoError(t, os.Setenv("Y", "11"))
+	assert.NoError(t, os.Setenv("Z", "False"))
+
+	assert.NoError(t, Init(&c))
+
+	assert.EqualValues(t, "EnvX", c.X)
+	assert.EqualValues(t, 11, c.Y)
+	assert.EqualValues(t, false, c.Z)
+
+	assert.NoError(t, os.Unsetenv("X"))
+	assert.NoError(t, os.Unsetenv("Y"))
+	assert.NoError(t, os.Unsetenv("Z"))
+}
+
+func TestCliOverEnv(t *testing.T) {
+	type asdf struct {
+		X string `env:"X" cli:"xxxx"`
+		Y int    `env:"Y" cli:"yyyy"`
+		Z bool   `env:"Z" cli:"zzzz"`
 	}
 
-	if c.Z != true {
-		t.Fatalf("Failed provided bool default TRUE, found %v", c.Z)
-	}
+	var c asdf
+
+	assert.NoError(t, os.Setenv("X", "EnvX"))
+	assert.NoError(t, os.Setenv("Y", "10"))
+	assert.NoError(t, os.Setenv("Z", "TRUE"))
+
+	os.Args = append(os.Args, "--xxxx=cli_xxx")
+	os.Args = append(os.Args, "--yyyy", "155")
+	os.Args = append(os.Args, "--zzzz=false")
+
+	assert.NoError(t, Init(&c))
+
+	assert.EqualValues(t, "cli_xxx", c.X)
+	assert.EqualValues(t, 155, c.Y)
+	assert.False(t, c.Z)
+
+	assert.NoError(t, os.Unsetenv("X"))
+	assert.NoError(t, os.Unsetenv("Y"))
+	assert.NoError(t, os.Unsetenv("Z"))
 }
