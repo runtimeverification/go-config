@@ -43,7 +43,7 @@ func set(vfield reflect.Value, value string) error {
 	return nil
 }
 
-func Init(c *interface{}) error {
+func Init(c interface{}) error {
 	// An instance of *c as a reflect.Value.
 	elem := reflect.ValueOf(c).Elem()
 
@@ -112,7 +112,7 @@ func Init(c *interface{}) error {
 				return err
 			}
 			flag.IntVar(
-				(*int)(vfield.UnsafePointer()),
+				(*int)(vfield.Addr().UnsafePointer()),
 				cliTag,
 				intValue,
 				description,
@@ -123,14 +123,14 @@ func Init(c *interface{}) error {
 				return err
 			}
 			flag.BoolVar(
-				(*bool)(vfield.UnsafePointer()),
+				(*bool)(vfield.Addr().UnsafePointer()),
 				cliTag,
 				boolValue,
 				description,
 			)
 		case reflect.String:
 			flag.StringVar(
-				(*string)(vfield.UnsafePointer()),
+				(*string)(vfield.Addr().UnsafePointer()),
 				cliTag,
 				defaultValueString,
 				description,
