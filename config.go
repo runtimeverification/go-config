@@ -8,6 +8,10 @@ import (
 	"strconv"
 )
 
+// Returns a `string` that can be converted to the "zero" value for `int`,
+// `string`, and `bool`.
+//
+// Returns an `error` for unsupported types.
 func defaultValueFor(kind reflect.Kind) (string, error) {
 	switch kind {
 	case reflect.Int:
@@ -21,6 +25,10 @@ func defaultValueFor(kind reflect.Kind) (string, error) {
 	}
 }
 
+// Converts `value` into an `int`, `string`, or `bool` (depending on the
+// reflect.Kind of `vfield`) and assigns it to `vfield`.
+//
+// Returns an `error` for unsupported types.
 func set(vfield reflect.Value, value string) error {
 	switch vfield.Kind() {
 	case reflect.Int:
@@ -43,6 +51,11 @@ func set(vfield reflect.Value, value string) error {
 	return nil
 }
 
+// Initializes `c` (which should be a pointer to a struct) according to its
+// field's tags.
+//
+// See https://github.com/runtimeverification/go-config/README.md for more
+// information.
 func Init(c interface{}) error {
 	// An instance of *c as a reflect.Value.
 	elem := reflect.ValueOf(c).Elem()
